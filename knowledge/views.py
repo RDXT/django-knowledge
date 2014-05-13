@@ -205,8 +205,8 @@ def knowledge_ask(request,
 
     if request.method == 'POST':
         send_mail(
-            request.POST['title'],
-            u"From {} - {} {}, via the FAQ ASK page. {}".format(request.user.email, request.user.first_name, request.user.last_name, request.POST['body']),
+            u"[MTRLOG FAQ ASK] - {}".format(request.POST['title']),
+            u"From {} - {} {}. {}".format(request.user.email, request.user.first_name, request.user.last_name, request.POST['body']),
             request.user.email,
             ['support@mtrlog.com'],
             fail_silently=True
