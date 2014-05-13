@@ -28,9 +28,9 @@ def QuestionForm(user, *args, **kwargs):
     else:
         selected_fields = ['user', 'title', 'body', 'status']
 
-    if settings.ALERTS:
-        selected_fields += ['alert']
-
+    # if settings.ALERTS:
+    #     selected_fields += ['alert']
+    
     class _QuestionForm(forms.ModelForm):
         def __init__(self, *args, **kwargs):
             super(_QuestionForm, self).__init__(*args, **kwargs)
