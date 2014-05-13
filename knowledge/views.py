@@ -1,3 +1,4 @@
+from django.core.mail import send_mail
 import settings
 
 from django.http import Http404, HttpResponseRedirect
@@ -8,7 +9,6 @@ from django.db.models import Q
 from knowledge.models import Question, Response, Category
 from knowledge.forms import QuestionForm, ResponseForm
 from knowledge.utils import paginate
-
 
 ALLOWED_MODS = {
     'question': [
@@ -200,18 +200,18 @@ def knowledge_moderate(
 def knowledge_ask(request,
                   template='django_knowledge/ask.html',
                   Form=QuestionForm):
-
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
 
     if request.method == 'POST':
-        form = Form(request.user, request.POST)
-        if form and form.is_valid():
-            if request.user.is_authenticated() or not form.cleaned_data['phone_number']:
-                question = form.save()
-                return redirect(question.get_absolute_url())
-            else:
-                return redirect('knowledge_index')
+        send_mail(
+            request.POST['title'],
+            u"From {} - {} {}, via the FAQ ASK page. {}".format(request.user.email, request.user.first_name, request.user.last_name, request.POST['body']),
+            request.user.email,
+            ['support@mtrlog.com'],
+            fail_silently=True
+        )
+        return redirect('knowledge_index')
     else:
         form = Form(request.user)
 
@@ -220,5 +220,5 @@ def knowledge_ask(request,
         'my_questions': get_my_questions(request),
         'form': form,
         'categories': Category.objects.all(),
-        'BASE_TEMPLATE' : settings.BASE_TEMPLATE,
+        'BASE_TEMPLATE': settings.BASE_TEMPLATE,
     })
