@@ -1,14 +1,14 @@
+from knowledge.models import Question, Response, Category
+from knowledge.forms import QuestionForm, ResponseForm
+from knowledge.utils import paginate
+
 from django.core.mail import send_mail
 import settings
-
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db.models import Q
 
-from knowledge.models import Question, Response, Category
-from knowledge.forms import QuestionForm, ResponseForm
-from knowledge.utils import paginate
 
 ALLOWED_MODS = {
     'question': [
@@ -25,25 +25,23 @@ ALLOWED_MODS = {
 
 
 def get_my_questions(request):
-
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
 
     if request.user.is_anonymous():
         return None
     else:
-        return Question.objects.can_view(request.user)\
-                               .filter(user=request.user)
+        return Question.objects.can_view(request.user) \
+            .filter(user=request.user)
 
 
 def knowledge_index(request,
                     template='django_knowledge/index.html'):
-
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
 
-    questions = Question.objects.can_view(request.user)\
-                                .prefetch_related('responses__question')[0:20]
+    questions = Question.objects.can_view(request.user) \
+                    .prefetch_related('responses__question')[0:20]
     # this is for get_responses()
     [setattr(q, '_requesting_user', request.user) for q in questions]
 
@@ -52,7 +50,7 @@ def knowledge_index(request,
         'questions': questions,
         'my_questions': get_my_questions(request),
         'categories': Category.objects.all(),
-        'BASE_TEMPLATE' : settings.BASE_TEMPLATE,
+        'BASE_TEMPLATE': settings.BASE_TEMPLATE,
     })
 
 
@@ -60,13 +58,12 @@ def knowledge_list(request,
                    category_slug=None,
                    template='django_knowledge/list.html',
                    Form=QuestionForm):
-
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
 
     search = request.GET.get('title', None)
-    questions = Question.objects.can_view(request.user)\
-                                .prefetch_related('responses__question')
+    questions = Question.objects.can_view(request.user) \
+        .prefetch_related('responses__question')
 
     if search:
         questions = questions.filter(
@@ -92,7 +89,7 @@ def knowledge_list(request,
         'category': category,
         'categories': Category.objects.all(),
         'form': Form(request.user, initial={'title': search}),  # prefill title
-        'BASE_TEMPLATE' : settings.BASE_TEMPLATE,
+        'BASE_TEMPLATE': settings.BASE_TEMPLATE,
     })
 
 
@@ -101,21 +98,21 @@ def knowledge_thread(request,
                      slug=None,
                      template='django_knowledge/thread.html',
                      Form=ResponseForm):
-
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
-    
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
+
     try:
-        question = Question.objects.can_view(request.user)\
-                                   .get(id=question_id)
+        question = Question.objects.can_view(request.user) \
+            .get(id=question_id)
     except Question.DoesNotExist:
         if Question.objects.filter(id=question_id).exists() and \
-                                hasattr(settings, 'LOGIN_REDIRECT_URL'):
+                hasattr(settings, 'LOGIN_REDIRECT_URL'):
             return redirect(settings.LOGIN_REDIRECT_URL)
         else:
             raise Http404
 
-    responses = question.get_responses(request.user)
+    responses = Response.objects.filter(question=question)
+    # responses = question.get_responses(request.user)
 
     if request.path != question.get_absolute_url():
         return redirect(question.get_absolute_url(), permanent=True)
@@ -137,7 +134,7 @@ def knowledge_thread(request,
         'allowed_mods': ALLOWED_MODS,
         'form': form,
         'categories': Category.objects.all(),
-        'BASE_TEMPLATE' : settings.BASE_TEMPLATE,
+        'BASE_TEMPLATE': settings.BASE_TEMPLATE,
     })
 
 
@@ -147,7 +144,6 @@ def knowledge_moderate(
         model,
         mod,
         allowed_mods=ALLOWED_MODS):
-
     """
     An easy to extend method to moderate questions
     and responses in a vaguely RESTful way.
@@ -162,7 +158,7 @@ def knowledge_moderate(
     """
 
     if settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-        return HttpResponseRedirect(settings.LOGIN_URL+"?next=%s" % request.path)
+        return HttpResponseRedirect(settings.LOGIN_URL + "?next=%s" % request.path)
 
     if request.method != 'POST':
         raise Http404
@@ -190,8 +186,8 @@ def knowledge_moderate(
 
     try:
         return redirect((
-            instance if instance.is_question else instance.question
-        ).get_absolute_url())
+                            instance if instance.is_question else instance.question
+                        ).get_absolute_url())
     except NoReverseMatch:
         # if we delete an instance...
         return redirect(reverse('knowledge_index'))
@@ -206,7 +202,8 @@ def knowledge_ask(request,
     if request.method == 'POST':
         send_mail(
             u"[MTRLOG FAQ ASK] - {}".format(request.POST['title']),
-            u"From {} - {} {}. {}".format(request.user.email, request.user.first_name, request.user.last_name, request.POST['body']),
+            u"From {} - {} {}. {}".format(request.user.email, request.user.first_name, request.user.last_name,
+                                          request.POST['body']),
             request.user.email,
             ['support@mtrlog.com'],
             fail_silently=True
